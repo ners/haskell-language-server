@@ -262,8 +262,7 @@ module Development.IDE.GHC.Compat.Core (
     SrcLoc.srcLocLine,
     SrcLoc.noSrcSpan,
     SrcLoc.noSrcLoc,
-    SrcLoc.noLoc,
-    SrcLoc.mapLoc,
+    mapLoc,
     -- * Finder
     FindResult(..),
     mkHomeModLocation,
@@ -1182,4 +1181,10 @@ pattern NamedFieldPuns = RecordPuns
 type UniqFM = UniqFM.UniqFM
 #else
 type UniqFM k = UniqFM.UniqFM
+#endif
+
+#if MIN_VERSION_ghc(9,5,0)
+mkVisFunTys = mkScaledFunctionTys
+mapLoc :: (a -> b) -> SrcLoc.GenLocated l a -> SrcLoc.GenLocated l b
+mapLoc = fmap
 #endif

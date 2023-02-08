@@ -134,7 +134,7 @@ codeGutsToCoreFile
   :: Fingerprint -- ^ Hash of the interface this was generated from
   -> CgGuts
   -> CoreFile
-codeGutsToCoreFile hash CgGuts{..} = CoreFile (map (toIfaceTopBind cg_module) $ filter isNotImplictBind cg_binds) hash
+codeGutsToCoreFile hash CgGuts{..} = CoreFile (map (toIfaceTopBind1 cg_module) $ filter isNotImplictBind cg_binds) hash
 
 -- | Implicit binds can be generated from the interface and are not tidied,
 -- so we must filter them out
@@ -163,21 +163,21 @@ getClassImplicitBinds cls
 get_defn :: Id -> CoreBind
 get_defn id = NonRec id (unfoldingTemplate (realIdUnfolding id))
 
-toIfaceTopBndr :: Module -> Id -> IfaceId
-toIfaceTopBndr mod id
+toIfaceTopBndr1 :: Module -> Id -> IfaceId
+toIfaceTopBndr1 mod id
   = IfaceId (mangleDeclName mod $ getName id)
             (toIfaceType (idType id))
             (toIfaceIdDetails (idDetails id))
             (toIfaceIdInfo (idInfo id))
 
-toIfaceTopBind :: Module -> Bind Id -> TopIfaceBinding IfaceId
-toIfaceTopBind mod (NonRec b r) = TopIfaceNonRec (toIfaceTopBndr mod b) (toIfaceExpr r)
-toIfaceTopBind mod (Rec prs)    = TopIfaceRec [(toIfaceTopBndr mod b, toIfaceExpr r) | (b,r) <- prs]
+toIfaceTopBind1 :: Module -> Bind Id -> TopIfaceBinding IfaceId
+toIfaceTopBind1 mod (NonRec b r) = TopIfaceNonRec (toIfaceTopBndr1 mod b) (toIfaceExpr r)
+toIfaceTopBind1 mod (Rec prs)    = TopIfaceRec [(toIfaceTopBndr1 mod b, toIfaceExpr r) | (b,r) <- prs]
 
 typecheckCoreFile :: Module -> IORef TypeEnv -> CoreFile -> IfG CoreProgram
 typecheckCoreFile this_mod type_var (CoreFile prepd_binding _) =
   initIfaceLcl this_mod (text "typecheckCoreFile") NotBoot $ do
-    tcTopIfaceBindings type_var prepd_binding
+    tcTopIfaceBindings1 type_var prepd_binding
 
 -- | Internal names can't be serialized, so we mange them
 -- to an external name and restore at deserialization time
@@ -199,9 +199,9 @@ isGhcideModule mod = "GHCIDEINTERNAL" `isPrefixOf` (moduleNameString $ moduleNam
 isGhcideName :: Name -> Bool
 isGhcideName = isGhcideModule . nameModule
 
-tcTopIfaceBindings :: IORef TypeEnv -> [TopIfaceBinding IfaceId]
+tcTopIfaceBindings1 :: IORef TypeEnv -> [TopIfaceBinding IfaceId]
           -> IfL [CoreBind]
-tcTopIfaceBindings ty_var ver_decls
+tcTopIfaceBindings1 ty_var ver_decls
    = do
      int <- mapM (traverse $ tcIfaceId) ver_decls
      let all_ids = concatMap toList int

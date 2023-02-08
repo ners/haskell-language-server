@@ -1,5 +1,5 @@
 packages:
-         ./
+         -- ./
          ./hie-compat
          ./shake-bench
          ./hls-graph
@@ -8,41 +8,52 @@ packages:
          ./ghcide/test
          ./hls-plugin-api
          ./hls-test-utils
-         ./plugins/hls-cabal-plugin
-         ./plugins/hls-cabal-fmt-plugin
-         ./plugins/hls-tactics-plugin
-         ./plugins/hls-stylish-haskell-plugin
-         ./plugins/hls-fourmolu-plugin
-         ./plugins/hls-class-plugin
-         ./plugins/hls-eval-plugin
-         ./plugins/hls-explicit-imports-plugin
-         ./plugins/hls-refine-imports-plugin
-         ./plugins/hls-hlint-plugin
-         ./plugins/hls-rename-plugin
-         ./plugins/hls-retrie-plugin
-         ./plugins/hls-haddock-comments-plugin
-         ./plugins/hls-splice-plugin
-         ./plugins/hls-floskell-plugin
-         ./plugins/hls-pragmas-plugin
-         ./plugins/hls-module-name-plugin
-         ./plugins/hls-ormolu-plugin
-         ./plugins/hls-call-hierarchy-plugin
-         ./plugins/hls-alternate-number-format-plugin
-         ./plugins/hls-qualify-imported-names-plugin
-         ./plugins/hls-code-range-plugin
-         ./plugins/hls-change-type-signature-plugin
-         ./plugins/hls-stan-plugin
-         ./plugins/hls-gadt-plugin
-         ./plugins/hls-explicit-fixity-plugin
-         ./plugins/hls-explicit-record-fields-plugin
-         ./plugins/hls-refactor-plugin
+         -- ./plugins/hls-cabal-plugin
+         -- ./plugins/hls-cabal-fmt-plugin
+         -- ./plugins/hls-tactics-plugin
+         -- ./plugins/hls-stylish-haskell-plugin
+         -- ./plugins/hls-fourmolu-plugin
+         -- ./plugins/hls-class-plugin
+         -- ./plugins/hls-eval-plugin
+         -- ./plugins/hls-explicit-imports-plugin
+         -- ./plugins/hls-refine-imports-plugin
+         -- ./plugins/hls-hlint-plugin
+         -- ./plugins/hls-rename-plugin
+         -- ./plugins/hls-retrie-plugin
+         -- ./plugins/hls-haddock-comments-plugin
+         -- ./plugins/hls-splice-plugin
+         -- ./plugins/hls-floskell-plugin
+         -- ./plugins/hls-pragmas-plugin
+         -- ./plugins/hls-module-name-plugin
+         -- ./plugins/hls-ormolu-plugin
+         -- ./plugins/hls-call-hierarchy-plugin
+         -- ./plugins/hls-alternate-number-format-plugin
+         -- ./plugins/hls-qualify-imported-names-plugin
+         -- ./plugins/hls-code-range-plugin
+         -- ./plugins/hls-change-type-signature-plugin
+         -- ./plugins/hls-stan-plugin
+         -- ./plugins/hls-gadt-plugin
+         -- ./plugins/hls-explicit-fixity-plugin
+         -- ./plugins/hls-explicit-record-fields-plugin
+         -- ./plugins/hls-refactor-plugin
 
 -- Standard location for temporary packages needed for particular environments
 -- For example it is used in the project gitlab mirror to help in the MAcOS M1 build script
 -- See https://github.com/haskell/haskell-language-server/blob/master/.gitlab-ci.yml
 optional-packages: vendored/*/*.cabal
 
-tests: true
+tests: false
+
+
+source-repository-package
+  type:git
+  location: https://github.com/wz1000/HieDb
+  tag: e9edc2e1e2ffdd73ff33f51fad468df5237ea1b5
+
+source-repository-package
+  type:git
+  location: https://github.com/haskell/hie-bios
+  tag: 8519812ad7501cab31347cd46ad1312b8413b8ad
 
 package *
   ghc-options: -haddock
@@ -50,7 +61,7 @@ package *
 
 write-ghc-environment-files: never
 
-index-state: 2023-01-10T00:00:00Z
+index-state: 2023-01-31T00:00:00Z
 
 constraints:
   -- For GHC 9.4, older versions of entropy fail to build on Windows
@@ -74,14 +85,18 @@ constraints:
 -- centos7 has an old version of git which cabal doesn't
 -- support. We delete these lines in gitlab ci to workaround
 -- this issue, as this is not necessary to build our binaries.
-source-repository-package
-  type:git
-  location: https://github.com/pepeiborra/ekg-json
-  tag: 7a0af7a8fd38045fd15fb13445bdcc7085325460
-  -- https://github.com/tibbe/ekg-json/pull/12
 -- END DELETE
 
 allow-newer:
+  -- ghc-9.6
+  template-haskell,
+  base,
+  ghc-prim,
+  ghc,
+  ghc-boot,
+  mtl,
+  transformers,
+  Cabal,
   -- ghc-9.4
   Chart-diagrams:lens,
   Chart:lens,
@@ -104,3 +119,14 @@ allow-newer:
   uuid:time,
   vector-space:base,
   ekg-wai:time,
+
+repository head.hackage.ghc.haskell.org
+   url: https://ghc.gitlab.haskell.org/head.hackage/
+   secure: True
+   key-threshold: 3
+   root-keys:
+       f76d08be13e9a61a377a85e2fb63f4c5435d40f8feb3e12eb05905edb8cdea89
+       26021a13b401500c8eb2761ca95c61f2d625bfef951b939a8124ed12ecf07329
+       7541f32a4ccca4f97aea3b22f5e593ba2c0267546016b992dfadcd2fe944e55d
+
+active-repositories: hackage.haskell.org, head.hackage.ghc.haskell.org:override

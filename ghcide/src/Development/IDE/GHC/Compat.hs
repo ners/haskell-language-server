@@ -156,7 +156,15 @@ import           Data.String                           (IsString (fromString))
 
 
 #if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,5,0)
+import           GHC.Core.Lint.Interactive                           (interactiveInScope)
+import           GHC.Driver.Config.Core.Lint.Interactive             (lintInteractiveExpr)
+import           GHC.Driver.Config.Core.Opt.Simplify                 (initSimplifyExprOpts)
+import           GHC.Driver.Config.CoreToStg                         (initCoreToStgOpts)
+import           GHC.Driver.Config.CoreToStg.Prep                    (initCorePrepConfig)
+#else
 import           GHC.Core.Lint                         (lintInteractiveExpr)
+#endif
 import qualified GHC.Core.Opt.Pipeline                 as GHC
 import           GHC.Core.Tidy                         (tidyExpr)
 import           GHC.CoreToStg.Prep                    (corePrepPgm)
@@ -309,7 +317,11 @@ myCoreToStgExpr logger dflags ictxt
        binding for the stg2stg step) -}
     let bco_tmp_id = mkSysLocal (fsLit "BCO_toplevel")
                                 (mkPseudoUniqueE 0)
+#if MIN_VERSION_ghc(9,5,0)
+                                ManyTy
+#else
                                 Many
+#endif
                                 (exprType prepd_expr)
     (stg_binds, prov_map, collected_ccs) <-
        myCoreToStg logger
@@ -342,7 +354,13 @@ myCoreToStg logger dflags ictxt
             this_mod ml prepd_binds = do
     let (stg_binds, denv, cost_centre_info)
          = {-# SCC "Core2Stg" #-}
-           coreToStg dflags this_mod ml prepd_binds
+           coreToStg
+#if MIN_VERSION_ghc(9,5,0)
+             (initCoreToStgOpts dflags)
+#else
+             dflags
+#endif
+             this_mod ml prepd_binds
 
 #if MIN_VERSION_ghc(9,4,2)
     (stg_binds2,_)
@@ -351,7 +369,13 @@ myCoreToStg logger dflags ictxt
 #endif
         <- {-# SCC "Stg2Stg" #-}
 #if MIN_VERSION_ghc(9,3,0)
-           stg2stg logger ictxt (initStgPipelineOpts dflags for_bytecode) this_mod stg_binds
+           stg2stg logger
+#if MIN_VERSION_ghc(9,5,0)
+                   (interactiveInScope ictxt)
+#else
+                   ictxt
+#endif
+                   (initStgPipelineOpts dflags for_bytecode) this_mod stg_binds
 #else
            stg2stg logger dflags ictxt this_mod stg_binds
 #endif
@@ -379,10 +403,21 @@ getDependentMods = map fst . dep_mods . mi_deps
 
 simplifyExpr :: DynFlags -> HscEnv -> CoreExpr -> IO CoreExpr
 #if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,5,0)
+simplifyExpr _ env = GHC.simplifyExpr (Development.IDE.GHC.Compat.Env.hsc_logger env) (ue_eps (Development.IDE.GHC.Compat.Env.hsc_unit_env env)) (initSimplifyExprOpts (hsc_dflags env) (hsc_IC env))
+#else
 simplifyExpr _ = GHC.simplifyExpr
+#endif
 
 corePrepExpr :: DynFlags -> HscEnv -> CoreExpr -> IO CoreExpr
+#if MIN_VERSION_ghc(9,5,0)
+corePrepExpr _ env exp = do
+  cfg <- initCorePrepConfig env
+  GHC.corePrepExpr (Development.IDE.GHC.Compat.Env.hsc_logger env) cfg exp
+#else
 corePrepExpr _ = GHC.corePrepExpr
+#endif
+
 #else
 simplifyExpr df _ = GHC.simplifyExpr df
 #endif

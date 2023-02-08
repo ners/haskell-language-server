@@ -111,7 +111,7 @@ documentSymbolForDecl (L (locA -> (RealSrcSpan l _)) (TyClD _ DataDecl { tcdLNam
 #if MIN_VERSION_ghc(9,2,0)
             , _children       = List . toList <$> nonEmpty childs
             }
-        | con <- dd_cons
+        | con <- extract_cons dd_cons
         , let (cs, flds) = hsConDeclsBinders con
         , let childs = mapMaybe cvtFld flds
         , L (locA -> RealSrcSpan l' _) n <- cs
@@ -291,7 +291,7 @@ hsConDeclsBinders cons
            -- remove only the first occurrence of any seen field in order to
            -- avoid circumventing detection of duplicate fields (#9156)
            ConDeclGADT { con_names = names, con_g_args = args }
-             -> (names, flds)
+             -> (toList names, flds)
              where
                 flds = get_flds_gadt args
 
@@ -317,4 +317,12 @@ hsConDeclsBinders cons
     get_flds :: Located [LConDeclField GhcPs]
              -> ([LFieldOcc GhcPs])
     get_flds flds = concatMap (cd_fld_names . unLoc) (unLoc flds)
+#endif
+
+
+#if MIN_VERSION_ghc(9,5,0)
+extract_cons (NewTypeCon x) = [x]
+extract_cons (DataTypeCons _ xs) = xs
+#else
+extract_cons = id
 #endif

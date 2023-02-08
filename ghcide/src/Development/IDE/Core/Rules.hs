@@ -62,6 +62,7 @@ module Development.IDE.Core.Rules(
     DisplayTHWarning(..),
     ) where
 
+import           Control.Applicative
 import           Control.Concurrent.Async                     (concurrently)
 import           Control.Concurrent.Strict
 import           Control.DeepSeq
@@ -159,6 +160,9 @@ import Control.Monad.IO.Unlift
 #if MIN_VERSION_ghc(9,3,0)
 import GHC.Unit.Module.Graph
 import GHC.Unit.Env
+#endif
+#if MIN_VERSION_ghc(9,5,0)
+import GHC.Unit.Home.ModInfo
 #endif
 
 data Log
@@ -775,7 +779,7 @@ ghcSessionDepsDefinition fullModSummary GhcSessionDepsConfig{..} env file = do
 
             depSessions <- map hscEnv <$> uses_ (GhcSessionDeps_ fullModSummary) deps
             ifaces <- uses_ GetModIface deps
-            let inLoadOrder = map (\HiFileResult{..} -> HomeModInfo hirModIface hirModDetails Nothing) ifaces
+            let inLoadOrder = map (\HiFileResult{..} -> HomeModInfo hirModIface hirModDetails emptyHomeModInfoLinkable) ifaces
 #if MIN_VERSION_ghc(9,3,0)
             -- On GHC 9.4+, the module graph contains not only ModSummary's but each `ModuleNode` in the graph
             -- also points to all the direct descendants of the current module. To get the keys for the descendants
@@ -1099,10 +1103,10 @@ getLinkableRule recorder =
               else pure Nothing
             case mobj_time of
               Just obj_t
-                | obj_t >= core_t -> pure ([], Just $ HomeModInfo hirModIface hirModDetails (Just $ LM (posixSecondsToUTCTime obj_t) (ms_mod ms) [DotO obj_file]))
+                | obj_t >= core_t -> pure ([], Just $ HomeModInfo hirModIface hirModDetails (justObjects $ LM (posixSecondsToUTCTime obj_t) (ms_mod ms) [DotO obj_file]))
               _ -> liftIO $ coreFileToLinkable linkableType (hscEnv session) ms hirModIface hirModDetails bin_core (error "object doesn't have time")
         -- Record the linkable so we know not to unload it, and unload old versions
-        whenJust (hm_linkable =<< hmi) $ \(LM time mod _) -> do
+        whenJust ((homeModInfoByteCode =<< hmi) <|> (homeModInfoObject =<< hmi)) $ \(LM time mod _) -> do
             compiledLinkables <- getCompiledLinkables <$> getIdeGlobalAction
             liftIO $ modifyVar compiledLinkables $ \old -> do
               let !to_keep = extendModuleEnv old mod time

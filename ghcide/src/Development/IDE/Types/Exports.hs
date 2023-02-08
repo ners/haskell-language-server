@@ -51,9 +51,9 @@ instance NFData ExportsMap where
 instance Show ExportsMap where
   show (ExportsMap occs mods) =
     unwords [ "ExportsMap { getExportsMap ="
-            , printWithoutUniques $ mapOccEnv (text . show) occs
+            , printWithoutUniques $ mapOccEnv (text @SDoc . show) occs
             , "getModuleExportsMap ="
-            , printWithoutUniques $ mapUFM (text . show) mods
+            , printWithoutUniques $ mapUFM (text @SDoc . show) mods
             , "}"
             ]
 
